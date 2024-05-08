@@ -1,0 +1,78 @@
+#!/bin/bash
+
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+RESET='\033[0m'
+
+# Function to print colored text
+print_color() {
+    printf "↳ \e[1;36m%s\e[0m\n" "$1"
+}
+
+# Function to print a separator line
+separator_with_title() {
+    local label=$1
+    local color=$2
+    local width=$(( $(tput cols) - ${#label} - 1 ))
+    printf "\e[3;${color}m%s\e[0m %*s\n" "$label" $width | tr ' ' '-'
+}
+
+separator() {
+    printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
+}
+
+blank_line() {
+    echo ""
+}
+
+# Function to display a spinner animation
+spinner() {
+    local pid=$1
+    local delay=0.15
+    local spinstr='|/-\'
+    while ps a | awk '{print $1}' | grep -q "$pid"; do
+        local temp=${spinstr#?}
+        printf "[%c] " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
+# Check if the .git folder exists
+if [ -d ".git" ]; then
+    # Add all changes in the current directory and below with a loading animation
+    separator_with_title "git add" 36
+    git add . &
+    spinner $!
+    wait
+    { print_color "Changes have been added successfully!"; } ||
+        { print_color "Failed to add changes."; exit 1; }
+    blank_line
+
+    # Perform commits using messages entered by the user.
+    separator_with_title "git commit" 36
+    read -e -p "$(echo -e "↳ ${CYAN}Enter a message to commit: ${RESET}")" message
+    blank_line
+
+    echo -e "↳ ${CYAN}Output${RESET} ↴"
+    git commit -m "$message"
+    separator
+
+    # Display the value of the `GITHUB_ACCESS_TOKEN` environment variable
+    blank_line
+    separator_with_title "Github Access Token" 36
+    print_color "$GITHUB_ACCESS_TOKEN"
+    blank_line
+
+    # Push commit to the master branch on the remote repository with the name origin.
+    separator_with_title "git push" 36
+    echo -e "↳ ${CYAN}Enter your username and password${RESET} ↴"
+    git push -u origin master
+    separator
+else
+    separator_with_title "Checking Git Init" 36
+    echo -e "${RED}Git repository not found${RESET}"
+    separator
+fi
