@@ -40,6 +40,8 @@ spinner() {
     printf "    \b\b\b\b"
 }
 
+figlet "GitAutoPush"
+
 # Check if the .git folder exists
 if [ -d ".git" ]; then
     # Add all changes in the current directory and below with a loading animation
